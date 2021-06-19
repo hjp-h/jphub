@@ -7,3 +7,12 @@ export function toLogin(data){
     data
   })
 }
+
+// 注册请求接口
+export function toRegister(data){
+  return request({
+    url:'/register',
+    method: 'POST',
+    data
+  })
+}

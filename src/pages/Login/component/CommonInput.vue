@@ -1,5 +1,6 @@
 <template>
   <div>
+    <div class="tip">{{ message }}</div>
     <el-input class="input-box" placeholder="请输入账号" v-model="username">
       <i slot="prefix" class="el-input__icon el-icon-s-custom"></i>
     </el-input>
@@ -16,14 +17,12 @@
       submitType
     }}</el-button>
     <slot name="loginFooter"></slot>
-    <div class="footer">
-      <slot name="registerFooter"></slot>
-    </div>
   </div>
 </template>
 
 <script>
-import { toLogin } from "../../../network/login";
+import { toRegister } from "../../../network/login";
+import { mapActions, mapGetters } from "vuex";
 export default {
   name: "CommonInput",
   props: {
@@ -39,25 +38,75 @@ export default {
   data() {
     return {
       username: "",
-      password: ""
+      password: "",
+      message: ""
     };
   },
   methods: {
+    ...mapActions(["aLogin"]),
     handleSubmit() {
-      const userInfo = { username: this.username, password: this.password };
-      toLogin(userInfo)
-        .then(res => {
-          console.log(res);
-        })
-        .catch(err => {
-          console.log(err);
-        });
+      this.message = "";
+      const username = this.username;
+      const password = this.password;
+      const ackpassword = this.ackpassword;
+      if (!username || !password) {
+        this.message = "账号或密码不能为空！";
+        return;
+      }
+      const userInfo = { username, password };
+      if (this.submitType === "登录") {
+        // 调用store的登录方法
+        // 因为要将登录的状态存进store中
+        this.aLogin(userInfo)
+          .then(res => {
+            if (res.status === 200) {
+              console.log("登录成功");
+            } else {
+              this.message = res.errorMessage;
+            }
+          })
+          .catch(err => {
+            this.message = "请求出现错误，请稍候重试！";
+          });
+      } else {
+        if (password !== ackpassword) {
+          this.message = "两次输入密码不一致！";
+          return;
+        }
+        toRegister(userInfo)
+          .then(res => {
+            if (res.status === 200) {
+              this.$message({
+                message: "注册成功！请登录！",
+                type: "success"
+              });
+            } else {
+              this.$message.error({
+                message: res.errorMessage
+              });
+            }
+          })
+          .catch(err => {
+            this.$message.error({
+              message: "注册失败！"
+            });
+          });
+      }
     }
+  },
+  computed: {
+    ...mapGetters(["token", "userInfo"])
   }
 };
 </script>
 
 <style scope>
+/* 提示内容 */
+.tip {
+  color: rgb(216, 115, 115);
+  height: 10px;
+}
+
 /* tab切换的文字 */
 .el-tabs__item {
   font-size: 24px;
@@ -75,8 +124,8 @@ export default {
 .input-box {
   margin-top: 20px;
 }
-.input-box:nth-child(1) {
-  margin-top: 50px;
+.input-box:nth-child(2) {
+  margin-top: 10px;
 }
 .submit-btn {
   margin-top: 20px;
